@@ -12,7 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
-// Actual HTTP/2 gRPC traffic over loopback; port 0 avoids fixed-port conflicts.
+// These tests send real gRPC requests to a local server.
+// Port 0 lets the server pick an available port so tests don't conflict.
 public class GreetingServiceTest {
     private Server server;
     private ManagedChannel channel;

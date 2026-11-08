@@ -4,7 +4,7 @@ package commander.v1;
 option java_package = "edu.csci4420.commander.proto";
 option java_multiple_files = true;
 
-// Shared contract: Android and the server generate code from this same file.
+// The Android app and Java server both generate their code from this file.
 service Greeter {
   rpc SayHello(HelloRequest) returns (HelloReply);
 }

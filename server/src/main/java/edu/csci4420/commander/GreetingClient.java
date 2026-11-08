@@ -11,7 +11,7 @@ public final class GreetingClient {
         String host = args.length > 0 ? args[0] : "localhost";
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 50051;
         String name = args.length > 2 ? args[2] : "Android";
-        // Plaintext is for the local milestone demo; use TLS for deployment.
+        // Using plaintext for the local Milestone 1 demo.
         ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
         try {
             System.out.println(GreeterGrpc.newBlockingStub(channel)
