@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package commander.v1;
+option java_package = "edu.csci4420.commander.proto";
+option java_multiple_files = true;
+
+// Shared contract: Android and the server generate code from this same file.
+service Greeter {
+  rpc SayHello(HelloRequest) returns (HelloReply);
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloReply {
+  string message = 1;
+}
