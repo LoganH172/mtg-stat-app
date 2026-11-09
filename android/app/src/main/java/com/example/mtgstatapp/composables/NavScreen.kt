@@ -2,6 +2,7 @@ package com.example.mtgstatapp.composables
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -15,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.mtgstatapp.NavigationScreens
 
 /*Simple UI that swaps between screens for views.*/
@@ -34,10 +37,11 @@ fun MainScreen()
                         onClick = {selectedIndex = index},
                         icon = {
                             Icon(
+                                modifier = Modifier.size(36.dp),
                                 painter = painterResource(screens.icon),
                                 contentDescription = screens.contentDescription)
                         },
-                        label = { Text(screens.label)}
+                        label = { Text(screens.label, fontSize = 12.sp)}
 
                     )
                 }
@@ -52,5 +56,8 @@ fun Content(modifier: Modifier = Modifier, selectedIndex : Int){
     when(selectedIndex){
         0->HomeScreen()
         1->LeaderboardScreen()
+        2->GameScreen()
+        3->PlayerScreen()
+        4->PlaygroupScreen()
     }
 }
