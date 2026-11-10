@@ -41,6 +41,7 @@ fun MainScreen()
                                 painter = painterResource(screens.icon),
                                 contentDescription = screens.contentDescription)
                         },
+                        //Label may be removed once Icons are more set to save space
                         label = { Text(screens.label, fontSize = 12.sp)}
 
                     )
