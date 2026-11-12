@@ -23,7 +23,7 @@ import com.example.mtgstatapp.NavigationScreens
 /*Simple UI that swaps between screens for views.*/
 @Preview
 @Composable
-fun MainScreen()
+fun MainContentScreen()
 {
     var selectedIndex by remember { mutableIntStateOf(0) }
 
@@ -56,9 +56,7 @@ fun MainScreen()
 fun Content(modifier: Modifier = Modifier, selectedIndex : Int){
     when(selectedIndex){
         0->HomeScreen()
-        1->LeaderboardScreen()
-        2->GameScreen()
-        3->PlayerScreen()
-        4->PlaygroupScreen()
+        1->GameScreen()
+        2->PlaygroupScreen()
     }
 }

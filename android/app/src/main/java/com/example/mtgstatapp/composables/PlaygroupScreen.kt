@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 
+/*Playgroup Screen will look similar to that of the Home Screen, but will analyze a playgroup's metrics.
+* Color breakdown of group, last game played, how often you win in specific group, how often commander wins. */
 @Composable
 fun PlaygroupScreen(){
     Column(

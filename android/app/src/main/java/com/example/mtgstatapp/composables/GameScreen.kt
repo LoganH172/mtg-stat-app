@@ -11,6 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 
+/*Currently placeholder text, but will show game data sourced from database in LazyList with Card composables
+* for each game. Data to include would be players, their associated commanders and who won. Playgroups should be
+* implemented to allow for filtering by playgroup.*/
 @Composable
 fun GameScreen(){
     Column(

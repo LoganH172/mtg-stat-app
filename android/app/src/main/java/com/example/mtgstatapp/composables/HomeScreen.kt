@@ -34,6 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mtgstatapp.R
 
+/*Intention is to have the home screen act as the player data screen.This way specific game data can be another screen
+* with more granularity. The home screen will only show the most recent commander, date of last game, wins, losses, winrate,
+* and possibly commander color breakdown if possible through Scryfall integration. Other data would be commander winrate independent
+* of playgroup but locked to player. (i.e. if you have multiple playgroups and play the same deck across groups, your aggregate winrate)  */
 @Preview
 @Composable
 fun HomeScreen(){
