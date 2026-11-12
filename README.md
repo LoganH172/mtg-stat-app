@@ -16,10 +16,13 @@ My home network caused issues with the gRPC calls, leading to a DEADLINE_EXCEEDE
 I alternatively got the connection to work with reverse port forwarding using the following commands in a PowerShell terminal:
 
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" reverse tcp:50051 tcp:50051
+
 *The above command sets up the reverse port forwarding*
 
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" reverse --list
+
 *The above command lists all connections using reverse port forwarding *
 
 & $env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe reverse --remove tcp:50051
+
 *The above command removes the reverse port forwading operation to reinstate normal traffic*
