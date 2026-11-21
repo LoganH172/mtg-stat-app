@@ -36,4 +36,7 @@ public class GreetingServiceTest {
     @Test public void defaultsBlankName() {
         assertEquals("Hello Android! Connection successful.", greet("   "));
     }
+    @Test public void trimsSpacesAroundName() {
+        assertEquals("Hello Cayden! Connection successful.", greet(" Cayden "));
+    }
 }
