@@ -5,6 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.mtgstatapp.composables.LoginScreen
 import com.example.mtgstatapp.composables.MainContentScreen
 import com.example.mtgstatapp.ui.theme.MtgstatappTheme
@@ -17,8 +21,22 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MtgstatappTheme {
-                //Currently only calling LoginScreen to demonstrate gRPC calls
-                LoginScreen(viewModel)
+                val navHostController : NavHostController = rememberNavController()
+
+                //Navigate to the correct screen
+                NavHost(
+                    navController = navHostController,
+                    startDestination = NavigationRoutes.LOGIN.name,
+                    builder = {
+                        composable(NavigationRoutes.LOGIN.name) {
+                            LoginScreen(viewModel, navHostController)
+                        }
+                        composable(NavigationRoutes.MAIN.name){
+                            MainContentScreen(viewModel, navHostController)
+                        }
+
+                    }
+                )
                 }
             }
         }

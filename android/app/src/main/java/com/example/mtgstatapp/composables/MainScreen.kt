@@ -15,15 +15,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mtgstatapp.NavigationScreens
+import androidx.navigation.NavHostController
+import com.example.mtgstatapp.NavBarScreens
+import com.example.mtgstatapp.viewmodel.ViewModel
 
 /*Simple UI that swaps between screens for views.*/
-@Preview
 @Composable
-fun MainContentScreen()
+fun MainContentScreen(viewModel: ViewModel, navHostController: NavHostController)
 {
     var selectedIndex by remember { mutableIntStateOf(0) }
 
@@ -31,7 +31,7 @@ fun MainContentScreen()
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar{
-                NavigationScreens.entries.forEachIndexed { index, screens ->
+                NavBarScreens.entries.forEachIndexed { index, screens ->
                     NavigationBarItem(
                         selected = selectedIndex == index,
                         onClick = {selectedIndex = index},

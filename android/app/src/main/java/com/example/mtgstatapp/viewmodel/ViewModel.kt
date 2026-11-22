@@ -2,9 +2,13 @@ package com.example.mtgstatapp.viewmodel
 
 import android.app.Application
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mtgstatapp.client.ClientService
+import edu.csci4420.commander.proto.PlayerProfile
 import io.grpc.StatusException
 import kotlinx.coroutines.launch
 
@@ -14,7 +18,16 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     * some issues and change host to localhost. I included some commands to help port forward in the updated README.
     * Otherwise this is the layout fot the viewModel, which will handle data from gRPC calls and pass into UI elements
     * for updating. */
-    private val client = ClientService(application, "10.0.0.193", 50051);
+    private val client = ClientService(application, "10.0.0.193", 50051)
+
+    var username by mutableStateOf("")
+    var password by mutableStateOf("")
+    var currentPlayer by mutableStateOf(PlayerProfile.getDefaultInstance())
+    var passwordVisible by mutableStateOf(false)
+
+    var newUserRegister by mutableStateOf(true)
+
+    var loginScreenState by mutableStateOf("Login")
 
     fun greet(name: String) {
         viewModelScope.launch {
@@ -24,6 +37,29 @@ class ViewModel(application: Application): AndroidViewModel(application) {
             } catch (e: StatusException) {
                 Log.e("CommanderGRPC", "RPC failed: ${e.status}", e)
             }
+        }
+    }
+
+    fun playerLogin(username : String, password: String)
+    {
+        viewModelScope.launch {
+            try {
+                currentPlayer = client.loginExistingPlayer(username, password)
+                Log.d("CommanderGRPC", "User logged in")
+            }
+            catch (e: StatusException){
+                Log.e("CommanderGRPC", "Login failed: ${e.status}", e)}
+        }
+    }
+    fun playerRegister(username : String, password: String)
+    {
+        viewModelScope.launch {
+            try {
+                currentPlayer = client.registerNewPlayer(username, password)
+                Log.d("CommanderGRPC", "User registered")
+            }
+            catch (e: StatusException){
+                Log.e("CommanderGRPC", "Registration failed: ${e.status}", e)}
         }
     }
 
