@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package commander.v1;
+
+import "auth.proto";
+import "card.proto";
+
+option java_package = "edu.csci4420.commander.proto";
+option java_multiple_files = true;
+
+service StatsService {
+  rpc GetProfileStats(GetProfileStatsRequest) returns (GetProfileStatsReply);
+  rpc ListLeaderboard(ListLeaderboardRequest) returns (ListLeaderboardReply);
+}
+
+message GetProfileStatsRequest {}
+
+message GetProfileStatsReply {
+  PlayerProfile player = 1;
+  WinLossRecord overall = 2;
+  repeated ColorIdentityRecord records_by_color_identity = 3;
+  // Absent until the player has a completed match. Ties favor the identity
+  // used in the player's most recent completed match among the tied identities.
+  ColorIdentity most_played_color_identity = 4;
+}
+
+message ColorIdentityRecord {
+  ColorIdentity color_identity = 1;
+  WinLossRecord record = 2;
+}
+
+message WinLossRecord {
+  int64 wins = 1;
+  int64 losses = 2;
+  int64 games_played = 3;
+  // Between 0 and 100 inclusive. Zero when there are no completed games.
+  double win_percentage = 4;
+}
+
+message ListLeaderboardRequest {
+  // Zero uses the server's default. The server caps the page size.
+  uint32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListLeaderboardReply {
+  repeated LeaderboardEntry entries = 1;
+  // Empty on the final page.
+  string next_page_token = 2;
+}
+
+message LeaderboardEntry {
+  // One-based position across all pages.
+  int64 rank = 1;
+  PlayerProfile player = 2;
+  WinLossRecord overall = 3;
+}

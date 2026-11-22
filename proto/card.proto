@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package commander.v1;
+
+option java_package = "edu.csci4420.commander.proto";
+option java_multiple_files = true;
+
+// Card data comes from Scryfall through the backend.
+service CardService {
+  rpc SearchCards(SearchCardsRequest) returns (stream Card);
+  rpc GetCard(GetCardRequest) returns (GetCardReply);
+}
+
+message SearchCardsRequest {
+  string query = 1;
+  bool commanders_only = 2;
+  // Zero uses the server's default. The server caps the number returned.
+  uint32 limit = 3;
+}
+
+message GetCardRequest {
+  // Identifies a particular Scryfall printing.
+  string scryfall_id = 1;
+  // Omit for card details only.
+  optional CardFinish finish = 2;
+}
+
+message GetCardReply {
+  Card card = 1;
+  // Omitted when pricing was skipped or Scryfall has no price for this finish.
+  CardPrice price = 2;
+}
+
+message Card {
+  string scryfall_id = 1;
+  string name = 2;
+  ColorIdentity color_identity = 3;
+  // One image for a single-faced card, or images in face order if provided.
+  repeated string image_urls = 4;
+  repeated CardFinish available_finishes = 5;
+}
+
+message ColorIdentity {
+  // A present identity with an empty list is colorless. Each color appears
+  // at most once, ordered white, blue, black, red, then green.
+  repeated ManaColor colors = 1;
+}
+
+enum ManaColor {
+  MANA_COLOR_UNSPECIFIED = 0;
+  MANA_COLOR_WHITE = 1;
+  MANA_COLOR_BLUE = 2;
+  MANA_COLOR_BLACK = 3;
+  MANA_COLOR_RED = 4;
+  MANA_COLOR_GREEN = 5;
+}
+
+enum CardFinish {
+  CARD_FINISH_UNSPECIFIED = 0;
+  CARD_FINISH_NONFOIL = 1;
+  CARD_FINISH_FOIL = 2;
+  CARD_FINISH_ETCHED = 3;
+}
+
+message CardPrice {
+  CardFinish finish = 1;
+  // Decimal amount as supplied by Scryfall, for example "12.34".
+  string amount = 2;
+  // ISO 4217 code, for example "USD".
+  string currency_code = 3;
+  int64 retrieved_at_unix_seconds = 4;
+}
