@@ -56,7 +56,8 @@ fun MainContentScreen(viewModel: ViewModel, navHostController: NavHostController
 fun Content(modifier: Modifier = Modifier, selectedIndex : Int){
     when(selectedIndex){
         0->HomeScreen()
-        1->GameScreen()
-        2->PlaygroupScreen()
+        1->MyCommanderScreen()
+        2->GameScreen()
+        3->PlaygroupScreen()
     }
 }

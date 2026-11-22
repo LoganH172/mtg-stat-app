@@ -93,6 +93,7 @@ data class cGameDataEnity(
 
 @Entity(tableName = "playgroup")
 data class cPlaygroupEntity(
+    @PrimaryKey(autoGenerate = false)
     val id : String,
     val name: String
 )

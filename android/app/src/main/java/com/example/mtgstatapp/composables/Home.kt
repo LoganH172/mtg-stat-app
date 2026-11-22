@@ -13,7 +13,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -28,9 +39,10 @@ import com.example.mtgstatapp.R
 * with more granularity. The home screen will only show the most recent commander, date of last game, wins, losses, winrate,
 * and possibly commander color breakdown if possible through Scryfall integration. Other data would be commander winrate independent
 * of playgroup but locked to player. (i.e. if you have multiple playgroups and play the same deck across groups, your aggregate winrate)  */
-@Preview
+
 @Composable
 fun HomeScreen(){
+    //Future goal -> Break all complex elements into own composable function and let main call handle layout
     Box(
         modifier = Modifier
             .background(Color(0xFF1C4DA4))
@@ -93,7 +105,56 @@ fun HomeScreen(){
                         })
 
                 }
+
             }
+
         }
+        //Works adjust layout later
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            FloatingDrawer()
+        }
+    }
+}
+//Composable for floating action drawer when player clicks the floating action add button
+@Preview
+@Composable
+fun FloatingDrawer(){
+    var expand by remember{mutableStateOf(false)}
+    FloatingActionButtonMenu(
+        expanded = expand,
+        button =
+            {
+                ToggleFloatingActionButton(
+                    checked = expand,
+                    onCheckedChange = {expand = !expand})
+                {
+                    Icon(painter = painterResource(R.drawable.rounded_add_24), contentDescription = "add")
+                }
+            })
+    {
+        FloatingActionButtonMenuItem(
+            onClick = {},
+            text = {Text("Create new game")},
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.rounded_note_add_24),
+                    contentDescription = "Add game") }
+        )
+        FloatingActionButtonMenuItem(
+            onClick = {},
+            text = {Text("Create a new playgroup")},
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.rounded_group_24),
+                    contentDescription = "Add playgroup") }
+        )
+        FloatingActionButtonMenuItem(
+            onClick = {},
+            text = {Text("Join a playgroup")},
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.rounded_group_24),
+                    contentDescription = "Join playgroup") }
+        )
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -46,6 +47,7 @@ fun LoginScreen(viewModel: ViewModel, navHostController: NavHostController) {
             Spacer(modifier = Modifier.padding(8.dp))
 
             OutlinedTextField(
+                shape = RoundedCornerShape(12.dp),
                 value = viewModel.password,
                 onValueChange = { viewModel.password = it },
                 visualTransformation =
