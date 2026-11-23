@@ -8,13 +8,18 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mtgstatapp.client.ClientService
+import edu.csci4420.commander.proto.Card
 import edu.csci4420.commander.proto.ColorIdentity
 import edu.csci4420.commander.proto.ColorIdentityRecord
+import edu.csci4420.commander.proto.LeaderboardEntry
+import edu.csci4420.commander.proto.LosingCard
+import edu.csci4420.commander.proto.Match
 import edu.csci4420.commander.proto.PlayerProfile
 import edu.csci4420.commander.proto.WinLossRecord
 import edu.csci4420.commander.proto.mostPlayedColorIdentityOrNull
 import io.grpc.StatusException
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class ViewModel(application: Application): AndroidViewModel(application) {
     /*Had to do some debugging and figuring, but my own local network somehow claimed the 10.0.0.0/24 host
@@ -37,6 +42,29 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     var currentPlayerWLRecord by mutableStateOf(WinLossRecord.getDefaultInstance())
     var currentPlayerColorIdentityRecord by mutableStateOf<List<ColorIdentityRecord>>(emptyList())
     var currentPlayerMostPlayerColorIdentity by mutableStateOf(ColorIdentity.getDefaultInstance())
+
+    var pageSize by mutableStateOf(0)
+    var pageToken by mutableStateOf("")
+    var leaderboardPage by mutableStateOf<List<LeaderboardEntry>>(emptyList())
+    var currentPlayerMatchHistory by mutableStateOf<List<Match>>(emptyList())
+    var storedRequestID by mutableStateOf("")
+    var createdMatch by mutableStateOf(Match.getDefaultInstance())
+    var joinedMatch by mutableStateOf(Match.getDefaultInstance())
+    var retrievedMatch by mutableStateOf(Match.getDefaultInstance())
+
+    var submittedMatch by mutableStateOf(Match.getDefaultInstance())
+
+    var roomCode by mutableStateOf("")
+
+    var winningPlayerID by mutableStateOf("")
+
+    var losingCards by mutableStateOf<List<LosingCard>>(emptyList())
+
+    var commanderID by mutableStateOf("")
+
+    var selectedMatchByCommander by mutableStateOf(Match.getDefaultInstance())
+
+
 
 
     fun greet(name: String) {
@@ -90,12 +118,89 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
-    fun createMatch(){}
-    fun joinMatch(){}
-    fun getMatch(){}
-    fun selectCommander(){}
-    fun submitMatch(){}
-    fun matchHistory(){}
+    fun leaderboard(pageLimit : Int, pageInfo : String){
+        viewModelScope.launch {
+            try {
+                leaderboardPage = client.leaderboardList(pageLimit, pageInfo).entriesList
+            }
+            catch (e: StatusException)
+            {
+                Log.e("CommanderGRPC", "Retrieving leaderboard failed: ${e.status}", e)
+            }
+        }
+    }
+
+    fun createMatch(){
+        viewModelScope.launch {
+            try {
+                storedRequestID = UUID.randomUUID().toString()
+                createdMatch = client.matchCreation(storedRequestID)
+                Log.d("CommanderGRPC", "Created Match:  ${createdMatch.matchId}")
+
+            }
+            catch (e: StatusException)
+            {
+                Log.e("CommanderGRPC", "Creating match failed: ${e.status}", e)
+            }
+        }
+    }
+    fun joinMatch(roomCode : String) {
+        viewModelScope.launch {
+            try {
+                joinedMatch = client.matchJoin(roomCode)
+                Log.d("CommanderGRPC", "Joined Match:  ${joinedMatch.matchId}")
+            } catch (e: StatusException) {
+                Log.e("CommanderGRPC", "Joining match failed: ${e.status}", e)
+            }
+        }
+    }
+
+    fun getMatch(matchID : String) {
+        viewModelScope.launch {
+            try {
+                retrievedMatch = client.matchGet(matchID)
+                Log.d("CommanderGRPC", "Retrieved Match: ${retrievedMatch.matchId}")
+
+            } catch (e: StatusException) {
+                Log.e("CommanderGRPC", "Retrieving match failed: ${e.status}", e)
+            }
+        }
+    }
+        fun selectCommander(matchID: String, commanderID : String) {
+            viewModelScope.launch {
+                try {
+                    selectedMatchByCommander = client.matchCommanderSelect(matchID, commanderID)
+                    Log.d("CommanderGRPC", "Match with commander found: ${selectedMatchByCommander.matchId}")
+                }
+                catch (e: StatusException)
+                {
+                    Log.e("CommanderGRPC", "Unable to find match with commander: ${e.status}", e)
+                }
+            }
+        }
+        fun submitMatch(matchID: String, winningPlayerID: String, losingCards: List<LosingCard>) {
+            viewModelScope.launch {
+                try {
+                    submittedMatch = client.matchSubmit(matchID, winningPlayerID, losingCards)
+                    Log.d("CommanderGRPC", "Submitted match successfully")
+                }
+                catch (e: StatusException)
+                {
+                    Log.e("CommanderGRPC", "Submitting match failed: ${e.status}", e)
+                }
+            }
+        }
+
+        fun matchHistory(pageLimit: Int, pageInfo: String) {
+            viewModelScope.launch {
+                try {
+                    currentPlayerMatchHistory = client.matchHistory(pageLimit, pageInfo).matchesList
+                } catch (e: StatusException) {
+                    Log.e("CommanderGRPC", "Retrieving match history failed: ${e.status}", e)
+                }
+            }
+        }
+
 
 
 
