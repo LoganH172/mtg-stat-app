@@ -116,7 +116,6 @@ fun HomeScreen(){
     }
 }
 //Composable for floating action drawer when player clicks the floating action add button
-@Preview
 @Composable
 fun FloatingDrawer(){
     var expand by remember{mutableStateOf(false)}

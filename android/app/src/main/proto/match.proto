@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package commander.v1;
+
+import "auth.proto";
+import "card.proto";
+
+option java_package = "edu.csci4420.commander.proto";
+option java_multiple_files = true;
+
+// The server identifies the caller from the authorization metadata.
+service MatchService {
+  rpc CreateMatch(CreateMatchRequest) returns (Match);
+  rpc JoinMatch(JoinMatchRequest) returns (Match);
+  rpc GetMatch(GetMatchRequest) returns (Match);
+  rpc SelectCommander(SelectCommanderRequest) returns (Match);
+  rpc SubmitMatchResult(SubmitMatchResultRequest) returns (Match);
+  rpc ListMatchHistory(ListMatchHistoryRequest) returns (ListMatchHistoryReply);
+}
+
+message CreateMatchRequest {
+  // Client-generated UUID. Reuse it when retrying the same create request.
+  string request_id = 1;
+  optional string playgroup_id = 2;
+}
+
+message JoinMatchRequest {
+  string room_code = 1;
+}
+
+message GetMatchRequest {
+  string match_id = 1;
+}
+
+message SelectCommanderRequest {
+  string match_id = 1;
+  // Scryfall printing ID for the authenticated participant's commander.
+  string commander_scryfall_id = 2;
+}
+
+message SubmitMatchResultRequest {
+  string match_id = 1;
+  string winner_player_id = 2;
+  optional string most_valuable_card_scryfall_id = 3;
+  // One entry per eliminated player who has a Losing Card, excluding the winner.
+  repeated LosingCard losing_cards = 4;
+}
+
+message LosingCard {
+  string player_id = 1;
+  string scryfall_id = 2;
+}
+
+message ListMatchHistoryRequest {
+  // Zero uses the server's default. The server caps the page size.
+  uint32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListMatchHistoryReply {
+  // Finalized matches for the caller, newest first.
+  repeated Match matches = 1;
+  // Empty on the final page.
+  string next_page_token = 2;
+}
+
+message Match {
+  string match_id = 1;
+  // Present while the match can be joined.
+  optional string room_code = 2;
+  string created_by_player_id = 3;
+  int64 created_at_unix_seconds = 4;
+  repeated MatchParticipant participants = 5;
+  // Present once the result has been recorded.
+  MatchResult result = 6;
+  optional string playgroup_id = 7;
+}
+
+message MatchParticipant {
+  PlayerProfile player = 1;
+  // Absent until this participant selects a commander.
+  Card commander = 2;
+}
+
+message MatchResult {
+  string winner_player_id = 1;
+  optional string most_valuable_card_scryfall_id = 2;
+  repeated LosingCard losing_cards = 3;
+  int64 recorded_at_unix_seconds = 4;
+}

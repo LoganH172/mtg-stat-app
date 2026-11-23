@@ -8,7 +8,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mtgstatapp.client.ClientService
+import edu.csci4420.commander.proto.ColorIdentity
+import edu.csci4420.commander.proto.ColorIdentityRecord
 import edu.csci4420.commander.proto.PlayerProfile
+import edu.csci4420.commander.proto.WinLossRecord
+import edu.csci4420.commander.proto.mostPlayedColorIdentityOrNull
 import io.grpc.StatusException
 import kotlinx.coroutines.launch
 
@@ -20,14 +24,20 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     * for updating. */
     private val client = ClientService(application, "10.0.0.193", 50051)
 
+    //For state of UI on LoginScreen
     var username by mutableStateOf("")
     var password by mutableStateOf("")
-    var currentPlayer by mutableStateOf(PlayerProfile.getDefaultInstance())
     var passwordVisible by mutableStateOf(false)
-
     var newUserRegister by mutableStateOf(true)
-
     var loginScreenState by mutableStateOf("Login")
+
+    //Takes data from gRPC calls to pass into UI elements across app
+    var currentPlayer by mutableStateOf(PlayerProfile.getDefaultInstance())
+    //Breaks the GetProfileStatsReply into its parts for easier parsing
+    var currentPlayerWLRecord by mutableStateOf(WinLossRecord.getDefaultInstance())
+    var currentPlayerColorIdentityRecord by mutableStateOf<List<ColorIdentityRecord>>(emptyList())
+    var currentPlayerMostPlayerColorIdentity by mutableStateOf(ColorIdentity.getDefaultInstance())
+
 
     fun greet(name: String) {
         viewModelScope.launch {
@@ -40,11 +50,12 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
+    /*Will add session passing at later date*/
     fun playerLogin(username : String, password: String)
     {
         viewModelScope.launch {
             try {
-                currentPlayer = client.loginExistingPlayer(username, password)
+                currentPlayer = client.loginExistingPlayer(username, password).player
                 Log.d("CommanderGRPC", "User logged in")
             }
             catch (e: StatusException){
@@ -55,13 +66,38 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     {
         viewModelScope.launch {
             try {
-                currentPlayer = client.registerNewPlayer(username, password)
+                currentPlayer = client.registerNewPlayer(username, password).player
                 Log.d("CommanderGRPC", "User registered")
             }
             catch (e: StatusException){
                 Log.e("CommanderGRPC", "Registration failed: ${e.status}", e)}
         }
     }
+
+    fun playerStats()
+    {
+        viewModelScope.launch {
+         try {
+             val currentPlayerStats = client.getProfileStats()
+             currentPlayerWLRecord = currentPlayerStats.overall
+             currentPlayerColorIdentityRecord = currentPlayerStats.recordsByColorIdentityList
+             currentPlayerMostPlayerColorIdentity = currentPlayerStats.mostPlayedColorIdentityOrNull
+             Log.d("CommanderGRPC", "Player stats gathered and stored")
+         }
+         catch (e: StatusException){
+             Log.e("CommanderGRPC", "Getting player stats failed: ${e.status}", e)
+         }
+        }
+    }
+
+    fun createMatch(){}
+    fun joinMatch(){}
+    fun getMatch(){}
+    fun selectCommander(){}
+    fun submitMatch(){}
+    fun matchHistory(){}
+
+
 
     override fun onCleared() {
         super.onCleared()
