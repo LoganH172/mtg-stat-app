@@ -89,10 +89,13 @@ fun TEST_SCREEN(viewModel: ViewModel, navHostController: NavHostController){
                     Button(onClick = {viewModel.joinMatch(viewModel.roomCode.trim())}){Text("Join Match")}
                 }
 
+                Button(onClick = {viewModel.getMatch(viewModel.serverMatch.matchId)}){Text("Get Match")}
+                Text("Players in ${viewModel.roomCode}: ${viewModel.serverMatch.participantsList.count()}")
+
                 //Assuming client can only have one open game at a time.
-                val playersInMatch = viewModel.serverMatch.participantsList
-                val winningPlayer = playersInMatch.random()
-                viewModel.winningPlayerID = winningPlayer.player.playerId
+                val playersInMatch = viewModel.serverMatch.participantsList.toMutableList()
+                val winningPlayer = playersInMatch.randomOrNull()
+                viewModel.winningPlayerID = winningPlayer?.player?.playerId.toString()
                 playersInMatch.remove(winningPlayer)
                 //Creating test losing cards
                 playersInMatch.forEach { player ->

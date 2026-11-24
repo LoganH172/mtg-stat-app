@@ -134,6 +134,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
             try {
                 storedRequestID = UUID.randomUUID().toString()
                 serverMatch = client.matchCreation(storedRequestID)
+                roomCode = serverMatch.roomCode
                 Log.d("CommanderGRPC", "Created Match:  ${serverMatch.matchId}")
 
             }
@@ -146,8 +147,8 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     fun joinMatch(roomCode : String) {
         viewModelScope.launch {
             try {
-                val joinedMatch = client.matchJoin(roomCode)
-                Log.d("CommanderGRPC", "Joined Match:  ${joinedMatch.matchId}")
+                serverMatch = client.matchJoin(roomCode)
+                Log.d("CommanderGRPC", "Joined Match:  ${serverMatch.matchId}")
             } catch (e: StatusException) {
                 Log.e("CommanderGRPC", "Joining match failed: ${e.status}", e)
             }
