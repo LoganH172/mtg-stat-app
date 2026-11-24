@@ -33,7 +33,7 @@ fun TEST_SCREEN(viewModel: ViewModel, navHostController: NavHostController){
             viewModel.playerStats()
     }
 
-    if (viewModel.currentPlayer.username.isEmpty())
+    if (viewModel.currentPlayer.username.isNotEmpty())
     {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -89,7 +89,6 @@ fun TEST_SCREEN(viewModel: ViewModel, navHostController: NavHostController){
                     Button(onClick = {viewModel.joinMatch(viewModel.roomCode.trim())}){Text("Join Match")}
                 }
 
-                Button(onClick = {viewModel.getMatch(viewModel.serverMatch.matchId)}){Text("Get Match")}
                 Text("Players in ${viewModel.roomCode}: ${viewModel.serverMatch.participantsList.count()}")
 
                 //Assuming client can only have one open game at a time.

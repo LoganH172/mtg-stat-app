@@ -148,7 +148,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 serverMatch = client.matchJoin(roomCode)
-                Log.d("CommanderGRPC", "Joined Match:  ${serverMatch.matchId}")
+                Log.d("CommanderGRPC", "Joined Match ID:  ${serverMatch.matchId}")
             } catch (e: StatusException) {
                 Log.e("CommanderGRPC", "Joining match failed: ${e.status}", e)
             }
