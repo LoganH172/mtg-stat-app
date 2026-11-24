@@ -67,11 +67,8 @@ requested change.
   the price field absent. An upstream outage preventing lookup returns
   `UNAVAILABLE`.
 
-The Java server runs the greeting service and supports registration, login, and
-authenticated profile stats when MySQL is configured. See the
-[server README](../server/README.md) for local setup. Match, card, and leaderboard
-RPCs have proto definitions ready for implementation. The current MySQL schema can
-represent a completed match's winner and standout cards through
-`game_members`, but it needs persistence for room codes, in-progress
-membership, create request IDs, and match completion before it can support
-the full match flow.
+When MySQL is configured, the Java server supports registration, login,
+authenticated profile stats, and open match rooms through `CreateMatch`,
+`JoinMatch`, and `GetMatch`. See the [server README](../server/README.md) for
+local setup and the match-room migration. The remaining RPCs cover commander
+selection, match completion and history, card lookup, and the leaderboard.

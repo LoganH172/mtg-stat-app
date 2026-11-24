@@ -65,9 +65,9 @@ $env:COMMANDER_DB_PASSWORD = Read-Host 'Local MySQL password'
 .\gradlew.bat run
 ```
 
-With those variables set, the server exposes `commander.v1.AuthService` and
-`commander.v1.StatsService/GetProfileStats` on the same port as the greeting
-service. Registration immediately signs the player in.
+With those variables set, the server exposes authentication, profile stats,
+and match-room RPCs on the same port as the greeting service. Registration
+immediately signs the player in.
 Login creates a fresh session each time. Both return the player profile, a
 session token, and an expiration in Unix seconds. Sessions last 24 hours.
 Android should treat the token as an opaque string. The server port is
@@ -85,6 +85,33 @@ A fresh account returns zero wins, losses, and games played. The current schema
 identifies recorded results by a winning game member. A game with a missing or
 unreadable commander color identity still counts toward the overall record.
 An empty JSON color list represents a colorless commander.
+
+## Test creating and joining a match
+
+Apply the match-room migration after the base `commander` schema is installed.
+It creates room and participant tables and can be rerun on an existing
+database. Run this from the `server` directory, adjusting the host and port
+to match your MySQL setup.
+
+```powershell
+Get-Content -Raw .\sql\001-match-rooms.sql |
+    mysql --host=127.0.0.1 --port=3306 --user=server --password commander
+```
+
+1. Sign in on two clients and attach each client's own bearer token.
+2. On the first client, call `CreateMatch` with a fresh request UUID. The
+   reply includes the creator, a match UUID, and an eight-character room code.
+   Reuse the request UUID if the same create attempt times out.
+3. On the second client, call `JoinMatch` with that room code. The reply
+   includes the same match UUID and both players. Retrying the join keeps one
+   participant entry for that player.
+4. On the first client, call `GetMatch` with the match UUID to refresh the
+   participant list.
+
+Leave the playgroup ID unset for an unaffiliated room. If a playgroup is
+supplied, both clients must belong to it. These three calls support the
+open-room phase. The server handles commander selection and results in
+separate RPCs planned for the match flow.
 
 ## Handoff to Logan
 

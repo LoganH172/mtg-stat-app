@@ -31,9 +31,10 @@ public final class GreetingServer {
                         "Set COMMANDER_DB_URL, COMMANDER_DB_USER, and COMMANDER_DB_PASSWORD to enable auth.");
             }
             Database database = new Database(dbUrl, dbUser, dbPassword);
+            SessionAuthInterceptor sessionAuth = new SessionAuthInterceptor(database);
             builder.addService(new AuthService(database));
-            builder.addService(ServerInterceptors.intercept(
-                    new ProfileStatsService(database), new SessionAuthInterceptor(database)));
+            builder.addService(ServerInterceptors.intercept(new ProfileStatsService(database), sessionAuth));
+            builder.addService(ServerInterceptors.intercept(new MatchRoomService(database), sessionAuth));
         }
         Server server = builder.build().start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -46,7 +47,7 @@ public final class GreetingServer {
             }
         }));
         System.out.println("Commander server listening on port " + server.getPort()
-                + (dbUrl == null ? " (greeting only)" : " (greeting, auth, and profile stats)"));
+                + (dbUrl == null ? " (greeting only)" : " (greeting, auth, profile stats, and match rooms)"));
         server.awaitTermination();
     }
 }
