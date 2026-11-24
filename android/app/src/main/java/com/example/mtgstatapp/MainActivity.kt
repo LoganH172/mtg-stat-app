@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
                             MainContentScreen(viewModel, navHostController)
                         }
                         composable (NavigationRoutes.TEST.name ){
-                            TEST_SCREEN(viewModel)
+                            TEST_SCREEN(viewModel, navHostController)
                         }
 
                     }

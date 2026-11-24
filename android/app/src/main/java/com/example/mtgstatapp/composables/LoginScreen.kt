@@ -38,6 +38,7 @@ fun LoginScreen(viewModel: ViewModel, navHostController: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally)
         {
             OutlinedTextField(
+                shape = RoundedCornerShape(12.dp),
                 value = viewModel.username,
                 onValueChange = { viewModel.username = it },
                 label = {

@@ -48,13 +48,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     var leaderboardPage by mutableStateOf<List<LeaderboardEntry>>(emptyList())
     var currentPlayerMatchHistory by mutableStateOf<List<Match>>(emptyList())
     var storedRequestID by mutableStateOf("")
-    var createdMatch by mutableStateOf(Match.getDefaultInstance())
-    var joinedMatch by mutableStateOf(Match.getDefaultInstance())
-    var retrievedMatch by mutableStateOf(Match.getDefaultInstance())
-
-    var submittedMatch by mutableStateOf(Match.getDefaultInstance())
-
-    var roomCode by mutableStateOf("")
+    var serverMatch by mutableStateOf(Match.getDefaultInstance())
 
     var winningPlayerID by mutableStateOf("")
 
@@ -63,6 +57,8 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     var commanderID by mutableStateOf("")
 
     var selectedMatchByCommander by mutableStateOf(Match.getDefaultInstance())
+
+    var roomCode by mutableStateOf("")
 
 
 
@@ -134,8 +130,8 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 storedRequestID = UUID.randomUUID().toString()
-                createdMatch = client.matchCreation(storedRequestID)
-                Log.d("CommanderGRPC", "Created Match:  ${createdMatch.matchId}")
+                serverMatch = client.matchCreation(storedRequestID)
+                Log.d("CommanderGRPC", "Created Match:  ${serverMatch.matchId}")
 
             }
             catch (e: StatusException)
@@ -147,7 +143,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     fun joinMatch(roomCode : String) {
         viewModelScope.launch {
             try {
-                joinedMatch = client.matchJoin(roomCode)
+                val joinedMatch = client.matchJoin(roomCode)
                 Log.d("CommanderGRPC", "Joined Match:  ${joinedMatch.matchId}")
             } catch (e: StatusException) {
                 Log.e("CommanderGRPC", "Joining match failed: ${e.status}", e)
@@ -158,7 +154,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     fun getMatch(matchID : String) {
         viewModelScope.launch {
             try {
-                retrievedMatch = client.matchGet(matchID)
+                val retrievedMatch = client.matchGet(matchID)
                 Log.d("CommanderGRPC", "Retrieved Match: ${retrievedMatch.matchId}")
 
             } catch (e: StatusException) {
@@ -181,7 +177,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         fun submitMatch(matchID: String, winningPlayerID: String, losingCards: List<LosingCard>) {
             viewModelScope.launch {
                 try {
-                    submittedMatch = client.matchSubmit(matchID, winningPlayerID, losingCards)
+                    val submittedMatch = client.matchSubmit(matchID, winningPlayerID, losingCards)
                     Log.d("CommanderGRPC", "Submitted match successfully")
                 }
                 catch (e: StatusException)
@@ -202,6 +198,10 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         }
 
 
+    //Passes client logout to viewModel for ease of use.
+    fun logout(){
+        client.logout()
+    }
 
 
     override fun onCleared() {
