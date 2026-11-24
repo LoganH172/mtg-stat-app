@@ -18,6 +18,8 @@ import edu.csci4420.commander.proto.PlayerProfile
 import edu.csci4420.commander.proto.WinLossRecord
 import edu.csci4420.commander.proto.mostPlayedColorIdentityOrNull
 import io.grpc.StatusException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -59,6 +61,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     var selectedMatchByCommander by mutableStateOf(Match.getDefaultInstance())
 
     var roomCode by mutableStateOf("")
+    var cardSearchReturn = MutableStateFlow<List<Card>>(emptyList())
 
 
 
@@ -154,8 +157,8 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     fun getMatch(matchID : String) {
         viewModelScope.launch {
             try {
-                val retrievedMatch = client.matchGet(matchID)
-                Log.d("CommanderGRPC", "Retrieved Match: ${retrievedMatch.matchId}")
+                serverMatch = client.matchGet(matchID)
+                Log.d("CommanderGRPC", "Retrieved Match: ${serverMatch.matchId}")
 
             } catch (e: StatusException) {
                 Log.e("CommanderGRPC", "Retrieving match failed: ${e.status}", e)
@@ -196,6 +199,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
                 }
             }
         }
+
 
 
     //Passes client logout to viewModel for ease of use.
