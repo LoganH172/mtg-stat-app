@@ -1,4 +1,4 @@
-# Milestone 1: Java greeting server
+# Commander Ledger Java server
 
 This is an independent Java 17 project. It doesn't load or change
 the Android Gradle project. Versions are pinned for a reproducible starter,
@@ -47,15 +47,37 @@ Stop the server with Ctrl+C. To use another port, run the server with
 .\gradlew.bat test
 ```
 
-Two tests start an actual gRPC server on a dynamically assigned local port,
-send requests through a generated client, and check named and blank-name
-responses. Results: `build/reports/tests/test/index.html`.
+The greeting tests start an actual gRPC server on a dynamically assigned local
+port and check named, blank, and whitespace-padded requests. Results are in
+`build/reports/tests/test/index.html`.
+
+## Run registration and login locally
+
+Use a MySQL database with the `commander` schema. The `players` and `sessions`
+tables need the `salt` columns and their existing insert triggers. Those
+triggers generate salts and store hashes. Use a MySQL host and port reachable
+from the Java process.
+
+```powershell
+$env:COMMANDER_DB_URL = 'jdbc:mysql://127.0.0.1:3306/commander?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true'
+$env:COMMANDER_DB_USER = 'server'
+$env:COMMANDER_DB_PASSWORD = Read-Host 'Local MySQL password'
+.\gradlew.bat run
+```
+
+With those variables set, the server exposes `commander.v1.AuthService` on the
+same port as the greeting service. Registration immediately signs the player in.
+Login creates a fresh session each time. Both return the player profile, a
+session token, and an expiration in Unix seconds. Sessions last 24 hours.
+Android should treat the token as an opaque string. The server port is
+plaintext for local development. An unset `COMMANDER_DB_URL` starts the
+greeting demo by itself.
 
 ## Handoff to Logan
 
 - Contract: `proto/greeting.proto`, service `commander.v1.Greeter`, RPC `SayHello`.
 - Input: `HelloRequest.name`; output: `HelloReply.message`.
-- Server port: 50051, plaintext just for the local demonstration.
+- Server port: 50051 for the local demonstration.
 - The Android project should generate its own Android-compatible messages and
   client stubs from the same shared proto. Don't copy server generated Java
   files or add the server Netty transport to Android.

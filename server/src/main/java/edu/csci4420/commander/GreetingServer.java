@@ -20,7 +20,18 @@ public final class GreetingServer {
                 return;
             }
         }
-        Server server = ServerBuilder.forPort(port).addService(new GreetingService()).build().start();
+        ServerBuilder<?> builder = ServerBuilder.forPort(port).addService(new GreetingService());
+        String dbUrl = System.getenv("COMMANDER_DB_URL");
+        if (dbUrl != null) {
+            String dbUser = System.getenv("COMMANDER_DB_USER");
+            String dbPassword = System.getenv("COMMANDER_DB_PASSWORD");
+            if (dbUrl.isBlank() || dbUser == null || dbUser.isBlank() || dbPassword == null) {
+                throw new IllegalArgumentException(
+                        "Set COMMANDER_DB_URL, COMMANDER_DB_USER, and COMMANDER_DB_PASSWORD to enable auth.");
+            }
+            builder.addService(new AuthService(dbUrl, dbUser, dbPassword));
+        }
+        Server server = builder.build().start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             server.shutdown();
             try {
@@ -30,7 +41,8 @@ public final class GreetingServer {
                 Thread.currentThread().interrupt();
             }
         }));
-        System.out.println("Greeting server listening on port " + server.getPort());
+        System.out.println("Commander server listening on port " + server.getPort()
+                + (dbUrl == null ? " (greeting only)" : " (greeting and auth)"));
         server.awaitTermination();
     }
 }

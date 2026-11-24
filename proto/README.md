@@ -67,8 +67,10 @@ requested change.
   the price field absent. An upstream outage preventing lookup returns
   `UNAVAILABLE`.
 
-The Java server currently runs the greeting service. The new files define
-the interfaces for service implementation. The current MySQL schema can
+The Java server runs the greeting service and supports registration and login
+when MySQL is configured. See the [server README](../server/README.md) for local
+setup. The match, card, and stats files define the interfaces for service
+implementation. The current MySQL schema can
 represent a completed match's winner and standout cards through
 `game_members`, but it needs persistence for room codes, in-progress
 membership, create request IDs, and match completion before it can support
