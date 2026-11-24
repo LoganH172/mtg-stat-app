@@ -11,7 +11,6 @@ import io.grpc.stub.StreamObserver;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,22 +18,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 final class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
-    private static final Logger LOGGER = Logger.getLogger(AuthService.class.getName());
     private static final Duration SESSION_DURATION = Duration.ofHours(24);
     private static final int DUPLICATE_ENTRY = 1062;
 
     private final SecureRandom random = new SecureRandom();
-    private final String dbUrl;
-    private final String dbUser;
-    private final String dbPassword;
+    private final Database database;
 
-    AuthService(String dbUrl, String dbUser, String dbPassword) {
-        this.dbUrl = dbUrl;
-        this.dbUser = dbUser;
-        this.dbPassword = dbPassword;
+    AuthService(Database database) {
+        this.database = database;
     }
 
     @Override
@@ -47,7 +40,7 @@ final class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
 
         PlayerProfile player = playerProfile(UUID.randomUUID().toString(), username);
         AuthReply reply;
-        try (Connection connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword)) {
+        try (Connection connection = database.open()) {
             connection.setAutoCommit(false);
             try {
                 insertPlayer(connection, player, password);
@@ -65,7 +58,7 @@ final class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
             response.onError(e);
             return;
         } catch (SQLException e) {
-            databaseFailure("Registration", e, response);
+            response.onError(Database.failure("Registration", e).asRuntimeException());
             return;
         }
         response.onNext(reply);
@@ -81,7 +74,7 @@ final class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
         }
 
         AuthReply reply;
-        try (Connection connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword)) {
+        try (Connection connection = database.open()) {
             PlayerProfile player;
             try (PreparedStatement select = connection.prepareStatement("""
                     SELECT uuid, username, password, SHA2(CONCAT(salt, ?), 256) AS candidate_hash
@@ -102,7 +95,7 @@ final class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
             response.onError(e);
             return;
         } catch (SQLException e) {
-            databaseFailure("Login", e, response);
+            response.onError(Database.failure("Login", e).asRuntimeException());
             return;
         }
         response.onNext(reply);
@@ -169,13 +162,5 @@ final class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
 
     private static PlayerProfile playerProfile(String playerId, String username) {
         return PlayerProfile.newBuilder().setPlayerId(playerId).setUsername(username).build();
-    }
-
-    private static void databaseFailure(String operation, SQLException error, StreamObserver<AuthReply> response) {
-        String sqlState = error.getSQLState();
-        // JDBC error text can include submitted values, so log only diagnostic codes.
-        LOGGER.warning(operation + " failed (SQL state " + sqlState + ", vendor code " + error.getErrorCode() + ")");
-        Status status = sqlState != null && sqlState.startsWith("08") ? Status.UNAVAILABLE : Status.INTERNAL;
-        response.onError(status.withDescription(operation + " could not be completed.").asRuntimeException());
     }
 }

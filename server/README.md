@@ -65,13 +65,26 @@ $env:COMMANDER_DB_PASSWORD = Read-Host 'Local MySQL password'
 .\gradlew.bat run
 ```
 
-With those variables set, the server exposes `commander.v1.AuthService` on the
-same port as the greeting service. Registration immediately signs the player in.
+With those variables set, the server exposes `commander.v1.AuthService` and
+`commander.v1.StatsService/GetProfileStats` on the same port as the greeting
+service. Registration immediately signs the player in.
 Login creates a fresh session each time. Both return the player profile, a
 session token, and an expiration in Unix seconds. Sessions last 24 hours.
 Android should treat the token as an opaque string. The server port is
 plaintext for local development. An unset `COMMANDER_DB_URL` starts the
 greeting demo by itself.
+
+## Test an authenticated call
+
+After registering or logging in, send `authorization: Bearer <token>` as gRPC
+metadata with an empty `GetProfileStatsRequest`. The server checks the stored
+session hash and expiration and loads the signed-in player's stats. A missing,
+invalid, or expired token returns `UNAUTHENTICATED`.
+
+A fresh account returns zero wins, losses, and games played. The current schema
+identifies recorded results by a winning game member. A game with a missing or
+unreadable commander color identity still counts toward the overall record.
+An empty JSON color list represents a colorless commander.
 
 ## Handoff to Logan
 

@@ -2,6 +2,7 @@ package edu.csci4420.commander;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.ServerInterceptors;
 import java.util.concurrent.TimeUnit;
 
 public final class GreetingServer {
@@ -29,7 +30,10 @@ public final class GreetingServer {
                 throw new IllegalArgumentException(
                         "Set COMMANDER_DB_URL, COMMANDER_DB_USER, and COMMANDER_DB_PASSWORD to enable auth.");
             }
-            builder.addService(new AuthService(dbUrl, dbUser, dbPassword));
+            Database database = new Database(dbUrl, dbUser, dbPassword);
+            builder.addService(new AuthService(database));
+            builder.addService(ServerInterceptors.intercept(
+                    new ProfileStatsService(database), new SessionAuthInterceptor(database)));
         }
         Server server = builder.build().start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -42,7 +46,7 @@ public final class GreetingServer {
             }
         }));
         System.out.println("Commander server listening on port " + server.getPort()
-                + (dbUrl == null ? " (greeting only)" : " (greeting and auth)"));
+                + (dbUrl == null ? " (greeting only)" : " (greeting, auth, and profile stats)"));
         server.awaitTermination();
     }
 }
