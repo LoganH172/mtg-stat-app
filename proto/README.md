@@ -69,6 +69,7 @@ requested change.
 
 When MySQL is configured, the Java server supports registration, login,
 authenticated profile stats, and open match rooms through `CreateMatch`,
-`JoinMatch`, and `GetMatch`. See the [server README](../server/README.md) for
-local setup and the match-room migration. The remaining RPCs cover commander
-selection, match completion and history, card lookup, and the leaderboard.
+`JoinMatch`, and `GetMatch`. It also supports `SelectCommander` and
+`SubmitMatchResult`. See the [server README](../server/README.md) for
+local setup and the two match migrations. History, card lookup, and
+leaderboard have separate RPCs.

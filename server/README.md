@@ -109,9 +109,30 @@ Get-Content -Raw .\sql\001-match-rooms.sql |
    participant list.
 
 Leave the playgroup ID unset for an unaffiliated room. If a playgroup is
-supplied, both clients must belong to it. These three calls support the
-open-room phase. The server handles commander selection and results in
-separate RPCs planned for the match flow.
+supplied, both clients must belong to it.
+
+## Select commanders and record a result
+
+Apply the result migration after the room migration. It adds a commander
+column to open-room membership and lets different matches finish in the same
+second. Existing games, rooms, and player records are preserved.
+
+```powershell
+Get-Content -Raw .\sql\002-match-results.sql |
+    mysql --host=127.0.0.1 --port=3306 --user=server --password commander
+```
+
+1. Each participant calls `SelectCommander` with the match UUID and their
+   commander's Scryfall printing UUID. The server loads and caches the card's
+   name and color identity on first use.
+2. The creator calls `GetMatch` to confirm every participant has selected a
+   commander, then sends `SubmitMatchResult` with the match UUID and winner
+   UUID. For a basic test, omit the Most Valuable Card and leave the Losing
+   Card list empty. Any supplied card IDs must be Scryfall printing UUIDs.
+3. The server saves the result and participant records in one transaction.
+   Both participants can read the result with `GetMatch` and see the
+   updated record in `GetProfileStats`. The completed match no longer has a
+   joinable room code. An identical submission retry returns the saved result.
 
 ## Handoff to Logan
 
