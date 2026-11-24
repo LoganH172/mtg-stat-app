@@ -78,16 +78,17 @@ fun LoginScreen(viewModel: ViewModel, navHostController: NavHostController) {
                 }
             )
 
+            //UPDATED TO MOVE TO TEST SCREEN
             Button(onClick = {
                 if (viewModel.loginScreenState.equals("Login"))
                 {
                     viewModel.playerLogin(viewModel.username, viewModel.password)
-                    navHostController.navigate(NavigationRoutes.MAIN.name)
+                    navHostController.navigate(NavigationRoutes.TEST.name)
                 }
                 else
                 {
                     viewModel.playerRegister(viewModel.username, viewModel.password)
-                    navHostController.navigate(NavigationRoutes.MAIN.name)
+                    navHostController.navigate(NavigationRoutes.TEST.name)
                 }
                 })
             {

@@ -41,7 +41,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     //Breaks the GetProfileStatsReply into its parts for easier parsing
     var currentPlayerWLRecord by mutableStateOf(WinLossRecord.getDefaultInstance())
     var currentPlayerColorIdentityRecord by mutableStateOf<List<ColorIdentityRecord>>(emptyList())
-    var currentPlayerMostPlayerColorIdentity by mutableStateOf(ColorIdentity.getDefaultInstance())
+    var currentPlayerMostPlayerColorIdentity: ColorIdentity? by mutableStateOf(ColorIdentity.getDefaultInstance())
 
     var pageSize by mutableStateOf(0)
     var pageToken by mutableStateOf("")

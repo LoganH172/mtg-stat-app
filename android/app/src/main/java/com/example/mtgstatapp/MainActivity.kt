@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.mtgstatapp.composables.LoginScreen
 import com.example.mtgstatapp.composables.MainContentScreen
+import com.example.mtgstatapp.composables.TEST_SCREEN
 import com.example.mtgstatapp.ui.theme.MtgstatappTheme
 import com.example.mtgstatapp.viewmodel.ViewModel
 
@@ -33,6 +34,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(NavigationRoutes.MAIN.name){
                             MainContentScreen(viewModel, navHostController)
+                        }
+                        composable (NavigationRoutes.TEST.name ){
+                            TEST_SCREEN(viewModel)
                         }
 
                     }

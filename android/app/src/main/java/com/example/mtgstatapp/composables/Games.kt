@@ -35,7 +35,6 @@ fun GameScreen(){
 
 //Reusable and mutable game card to be called from LazyColumn, for each game of current player
 //Can "dropdown" for more granular view
-@Preview
 @Composable
 fun GameCard(){
     Card() {Text("Game:") }
