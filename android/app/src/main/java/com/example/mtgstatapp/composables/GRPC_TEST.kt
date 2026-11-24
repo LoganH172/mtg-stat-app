@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.mtgstatapp.NavigationRoutes
 import com.example.mtgstatapp.viewmodel.ViewModel
+import edu.csci4420.commander.proto.LosingCard
+import edu.csci4420.commander.proto.Match
+import edu.csci4420.commander.proto.MatchParticipant
 
 /*Since either registration or loggining in occured, currentPlayer should be populated, and since the header
 * will let the server know who is sending the request it should match who just logged in.*/
@@ -30,7 +33,7 @@ fun TEST_SCREEN(viewModel: ViewModel, navHostController: NavHostController){
             viewModel.playerStats()
     }
 
-    if (viewModel.currentPlayer.username.isNotEmpty())
+    if (viewModel.currentPlayer.username.isEmpty())
     {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -86,12 +89,31 @@ fun TEST_SCREEN(viewModel: ViewModel, navHostController: NavHostController){
                     Button(onClick = {viewModel.joinMatch(viewModel.roomCode.trim())}){Text("Join Match")}
                 }
 
+                //Assuming client can only have one open game at a time.
+                val playersInMatch = viewModel.serverMatch.participantsList
+                val winningPlayer = playersInMatch.random()
+                viewModel.winningPlayerID = winningPlayer.player.playerId
+                playersInMatch.remove(winningPlayer)
+                //Creating test losing cards
+                playersInMatch.forEach { player ->
+                    val losing = LosingCard.newBuilder()
+                        .setPlayerId(player.player.playerId)
+                        .setScryfallId("TEST")
+                        .build()
+                    viewModel.losingCards += losing
+                }
                 //Sets information from user to pass to call
-                Button(onClick = {}){Text("Submit Match")}
+                Button(onClick = {
+                    viewModel.submitMatch(
+                        viewModel.serverMatch.matchId,
+                        viewModel.winningPlayerID,
+                        viewModel.losingCards)
+                }){Text("Submit Match")}
 
             }
 
             //Match History Information
+            viewModel.matchHistory(0, "")
             Text("Total number of matches: ${viewModel.currentPlayerMatchHistory.size}")
             viewModel.currentPlayerMatchHistory.forEach { match ->
                 Text("Match Data: \n${match.matchId} \n${match.roomCode} \n${match.participantsList} \n${match.result} ")
@@ -101,6 +123,9 @@ fun TEST_SCREEN(viewModel: ViewModel, navHostController: NavHostController){
             Button(onClick = {
                 viewModel.logout()
                 navHostController.popBackStack(route = NavigationRoutes.LOGIN.name, inclusive = false)
+                //Cleanup viewModel so that users don't have persisting data from old users
+                viewModel.roomCode = ""
+                viewModel.serverMatch = Match.getDefaultInstance()
             }) {
                 Text("Logout")
             }

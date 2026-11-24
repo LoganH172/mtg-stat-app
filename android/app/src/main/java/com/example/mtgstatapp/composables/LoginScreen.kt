@@ -84,11 +84,15 @@ fun LoginScreen(viewModel: ViewModel, navHostController: NavHostController) {
                 if (viewModel.loginScreenState.equals("Login"))
                 {
                     viewModel.playerLogin(viewModel.username, viewModel.password)
+                    viewModel.username = ""
+                    viewModel.password = ""
                     navHostController.navigate(NavigationRoutes.TEST.name)
                 }
                 else
                 {
                     viewModel.playerRegister(viewModel.username, viewModel.password)
+                    viewModel.username = ""
+                    viewModel.password = ""
                     navHostController.navigate(NavigationRoutes.TEST.name)
                 }
                 })

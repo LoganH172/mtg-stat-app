@@ -4,8 +4,10 @@ import android.content.Context
 import com.google.common.primitives.Shorts
 import edu.csci4420.commander.proto.AuthReply
 import edu.csci4420.commander.proto.AuthServiceGrpcKt
+import edu.csci4420.commander.proto.Card
 import edu.csci4420.commander.proto.CardServiceGrpcKt
 import edu.csci4420.commander.proto.CreateMatchRequest
+import edu.csci4420.commander.proto.GetCardReply
 import edu.csci4420.commander.proto.GetCardRequest
 import edu.csci4420.commander.proto.GetMatchRequest
 import edu.csci4420.commander.proto.GetProfileStatsReply
@@ -23,6 +25,7 @@ import edu.csci4420.commander.proto.Match
 import edu.csci4420.commander.proto.MatchServiceGrpcKt
 import edu.csci4420.commander.proto.PlayerProfile
 import edu.csci4420.commander.proto.RegisterRequest
+import edu.csci4420.commander.proto.SearchCardsRequest
 import edu.csci4420.commander.proto.SelectCommanderRequest
 import edu.csci4420.commander.proto.StatsServiceGrpcKt
 import edu.csci4420.commander.proto.SubmitMatchResultRequest
@@ -36,6 +39,7 @@ import java.util.concurrent.TimeUnit
 import io.grpc.Metadata
 import io.grpc.stub.AbstractStub
 import io.grpc.stub.MetadataUtils
+import kotlinx.coroutines.flow.Flow
 
 /*Client Stub. Will update with final proto to handle methods. Passed into viewModel for separation*/
 class ClientService(
@@ -69,7 +73,8 @@ class ClientService(
      interceptor for the stub that it is called from.*/
     private fun <T : AbstractStub<T>> T.withAuth(): T {
         val token = sessionToken?.trim()
-        if (token.isNullOrEmpty()) return this
+        if (token.isNullOrEmpty())
+            return this
 
         val headers = Metadata().apply {
             put(AUTHORIZATION_KEY, "Bearer $token")
@@ -77,7 +82,7 @@ class ClientService(
         return withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers))
     }
     //Server call to test connection
-    suspend fun sayHello(userName: String): String = withContext(Dispatchers.IO) {
+    suspend fun sayHello(userName: String): String {
         val request = HelloRequest.newBuilder()
             .setName(userName)
             .build()
@@ -86,11 +91,11 @@ class ClientService(
             .withDeadlineAfter(30, TimeUnit.SECONDS)
             .sayHello(request)
 
-        response.message
+        return response.message
     }
 
     /*Login and register set the token, every other stub call uses the helper function (withAuth) to use the token*/
-    suspend fun registerNewPlayer(username : String, password: String): AuthReply = withContext(Dispatchers.IO){
+    suspend fun registerNewPlayer(username : String, password: String): AuthReply{
         val request = RegisterRequest.newBuilder()
             .setUsername(username)
             .setPassword(password)
@@ -100,10 +105,10 @@ class ClientService(
             .register(request)
 
         sessionToken = response.sessionToken
-        response
+        return response
     }
 
-    suspend fun loginExistingPlayer(username : String, password: String): AuthReply = withContext(Dispatchers.IO){
+    suspend fun loginExistingPlayer(username : String, password: String): AuthReply{
         val request = LoginRequest.newBuilder()
             .setUsername(username)
             .setPassword(password)
@@ -113,20 +118,19 @@ class ClientService(
             .login(request)
 
         sessionToken = response.sessionToken
-        response
+        return response
     }
 
-    suspend fun getProfileStats(): GetProfileStatsReply = withContext(Dispatchers.IO){
+    suspend fun getProfileStats(): GetProfileStatsReply{
         val request = GetProfileStatsRequest.newBuilder().build()
         val response = statsStub
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .getProfileStats(request)
-
-        response
+        return response
     }
 
-    suspend fun leaderboardList(pageLimit : Int, pageToken : String): ListLeaderboardReply = withContext(Dispatchers.IO){
+    suspend fun leaderboardList(pageLimit : Int, pageToken : String): ListLeaderboardReply{
         val request = ListLeaderboardRequest.newBuilder()
             .setPageSize(pageLimit)
             .setPageToken(pageToken)
@@ -135,11 +139,11 @@ class ClientService(
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .listLeaderboard(request)
-        response
+        return response
     }
 
     //Optional field left out
-    suspend fun matchCreation(requestID : String): Match = withContext(Dispatchers.IO){
+    suspend fun matchCreation(requestID : String): Match{
         val request = CreateMatchRequest.newBuilder()
             .setRequestId(requestID)
             .build()
@@ -147,10 +151,10 @@ class ClientService(
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .createMatch(request)
-        response
+        return response
     }
     //Assuming room code is hashed request/match ID
-    suspend fun matchJoin(roomCode : String): Match = withContext(Dispatchers.IO){
+    suspend fun matchJoin(roomCode : String): Match{
         val request = JoinMatchRequest.newBuilder()
             .setRoomCode(roomCode)
             .build()
@@ -158,10 +162,10 @@ class ClientService(
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .joinMatch(request)
-        response
+        return response
     }
 
-    suspend fun matchGet(matchID : String): Match = withContext(Dispatchers.IO){
+    suspend fun matchGet(matchID : String): Match{
         val request = GetMatchRequest.newBuilder()
             .setMatchId(matchID)
             .build()
@@ -169,11 +173,11 @@ class ClientService(
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .getMatch(request)
-        response
+        return response
     }
 
     //Optional fields left out
-    suspend fun matchSubmit(matchID : String, winningPlayerID : String, losingCards : List<LosingCard>): Match = withContext(Dispatchers.IO){
+    suspend fun matchSubmit(matchID : String, winningPlayerID : String, losingCards : List<LosingCard>): Match{
         val request = SubmitMatchResultRequest.newBuilder()
             .setMatchId(matchID)
             .setWinnerPlayerId(winningPlayerID)
@@ -183,10 +187,10 @@ class ClientService(
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .submitMatchResult(request)
-        response
+        return response
     }
 
-    suspend fun matchCommanderSelect(matchID: String, commanderScryfallID : String): Match = withContext(Dispatchers.IO){
+    suspend fun matchCommanderSelect(matchID: String, commanderScryfallID : String): Match{
         val request = SelectCommanderRequest.newBuilder()
             .setMatchId(matchID)
             .setCommanderScryfallId(commanderScryfallID)
@@ -195,10 +199,10 @@ class ClientService(
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .selectCommander(request)
-        response
+        return response
     }
 
-    suspend fun matchHistory(pageLimit : Int, pageToken : String): ListMatchHistoryReply = withContext(Dispatchers.IO){
+    suspend fun matchHistory(pageLimit : Int, pageToken : String): ListMatchHistoryReply{
         val request = ListMatchHistoryRequest.newBuilder()
             .setPageSize(pageLimit)
             .setPageToken(pageToken)
@@ -207,9 +211,31 @@ class ClientService(
             .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .listMatchHistory(request)
-        response
+        return response
     }
 
+     fun cardSearch(query: String, isCommander : Boolean, limit : Int): Flow<Card>{
+        val request = SearchCardsRequest.newBuilder()
+            .setQuery(query)
+            .setLimit(limit)
+            .setCommandersOnly(isCommander)
+            .build()
+        val response = cardStub
+            .withAuth()
+            .withDeadlineAfter(10, TimeUnit.SECONDS)
+            .searchCards(request)
+         return response
+     }
+    suspend fun cardGet(scryfallID : String) : GetCardReply{
+        val request = GetCardRequest.newBuilder()
+            .setScryfallId(scryfallID)
+            .build()
+        val response = cardStub
+            .withAuth()
+            .withDeadlineAfter(10, TimeUnit.SECONDS)
+            .getCard(request)
+        return response
+    }
     //Nulling our token means that we can no longer get authenticated calls
     fun logout(){
         sessionToken = null
