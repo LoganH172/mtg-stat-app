@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `players` (
   `uuid` VARCHAR(255) NOT NULL COMMENT 'Player UUID',
   `username` VARCHAR(32) NOT NULL COMMENT 'Player Username, limited to 32 characters. Must also be unique to avoid collisions',
   `password` VARCHAR(255) NOT NULL COMMENT 'Player password, should hash or obsfucate before insert on server',
+  `salt` VARCHAR(32) NOT NULL COMMENT 'For salting password'
   PRIMARY KEY (`uuid`),
   UNIQUE INDEX `username_UNIQUE` (`username` ASC) VISIBLE)
 ENGINE = InnoDB;
@@ -141,12 +142,13 @@ CREATE TABLE IF NOT EXISTS `sessions` (
   `session_player` VARCHAR(255) NOT NULL,
   `session_token` VARCHAR(255) NOT NULL,
   `session_expiration` TIMESTAMP NOT NULL,
+  `salt` VARCHAR(32) NOT NULL,
   PRIMARY KEY (`session_token`),
   INDEX `session_player_idx` (`session_player` ASC) VISIBLE,
   CONSTRAINT `session_player`
     FOREIGN KEY (`session_player`)
     REFERENCES `players` (`uuid`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -164,12 +166,12 @@ CREATE TABLE IF NOT EXISTS `player_commanders` (
   CONSTRAINT `player_link`
     FOREIGN KEY (`player`)
     REFERENCES `players` (`uuid`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `commander_link`
     FOREIGN KEY (`commander`)
     REFERENCES `commander_card_data` (`uuid`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -193,7 +195,7 @@ USE `commander`$$
 CREATE DEFINER = CURRENT_USER TRIGGER `commander`.`game_members_link_player_to_commander` AFTER INSERT ON `game_members` FOR EACH ROW
 BEGIN
 	INSERT INTO player_commanders(player, commander)
-    VALUES (NEW.player, NEW.commander)
+    VALUES (NEW.player_id, NEW.commander_id)
     ON DUPLICATE KEY UPDATE 
         player = player,
         commander = commander;
