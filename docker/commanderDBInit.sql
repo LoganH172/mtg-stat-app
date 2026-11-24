@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `players` (
   `uuid` VARCHAR(255) NOT NULL COMMENT 'Player UUID',
   `username` VARCHAR(32) NOT NULL COMMENT 'Player Username, limited to 32 characters. Must also be unique to avoid collisions',
   `password` VARCHAR(255) NOT NULL COMMENT 'Player password, should hash or obsfucate before insert on server',
-  `salt` VARCHAR(32) NOT NULL COMMENT 'For salting password'
+  `salt` VARCHAR(32) NOT NULL COMMENT 'For salting password',
   PRIMARY KEY (`uuid`),
   UNIQUE INDEX `username_UNIQUE` (`username` ASC) VISIBLE)
 ENGINE = InnoDB;
