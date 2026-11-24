@@ -33,6 +33,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
+import io.grpc.Metadata
+import io.grpc.stub.AbstractStub
+import io.grpc.stub.MetadataUtils
 
 /*Client Stub. Will update with final proto to handle methods. Passed into viewModel for separation*/
 class ClientService(
@@ -40,6 +43,15 @@ class ClientService(
     host : String,
     port : Int
 ): Closeable {
+
+    //Sets the metadata authorization key based on the server definition
+    companion object {
+        private val AUTHORIZATION_KEY: Metadata.Key<String> =
+            Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)
+    }
+
+    @Volatile
+    var sessionToken: String? = null
     private val channel: ManagedChannel = AndroidChannelBuilder
         .forAddress(host, port)
         .context(context.applicationContext)
@@ -51,6 +63,19 @@ class ClientService(
     private val matchStub = MatchServiceGrpcKt.MatchServiceCoroutineStub(channel)
     private val statsStub = StatsServiceGrpcKt.StatsServiceCoroutineStub(channel)
 
+    /*Helper function that can take any stub type and takes the established session token
+     (or in the case its empty, it will simply return and the server will have UNAUTHENTICATED) and
+     passes it and the authorization key into the metadata header and creates an attached client
+     interceptor for the stub that it is called from.*/
+    private fun <T : AbstractStub<T>> T.withAuth(): T {
+        val token = sessionToken?.trim()
+        if (token.isNullOrEmpty()) return this
+
+        val headers = Metadata().apply {
+            put(AUTHORIZATION_KEY, "Bearer $token")
+        }
+        return withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers))
+    }
     //Server call to test connection
     suspend fun sayHello(userName: String): String = withContext(Dispatchers.IO) {
         val request = HelloRequest.newBuilder()
@@ -64,6 +89,7 @@ class ClientService(
         response.message
     }
 
+    /*Login and register set the token, every other stub call uses the helper function (withAuth) to use the token*/
     suspend fun registerNewPlayer(username : String, password: String): AuthReply = withContext(Dispatchers.IO){
         val request = RegisterRequest.newBuilder()
             .setUsername(username)
@@ -73,6 +99,7 @@ class ClientService(
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .register(request)
 
+        sessionToken = response.sessionToken
         response
     }
 
@@ -85,12 +112,14 @@ class ClientService(
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .login(request)
 
+        sessionToken = response.sessionToken
         response
     }
 
     suspend fun getProfileStats(): GetProfileStatsReply = withContext(Dispatchers.IO){
         val request = GetProfileStatsRequest.newBuilder().build()
         val response = statsStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .getProfileStats(request)
 
@@ -103,6 +132,7 @@ class ClientService(
             .setPageToken(pageToken)
             .build()
         val response = statsStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .listLeaderboard(request)
         response
@@ -114,6 +144,7 @@ class ClientService(
             .setRequestId(requestID)
             .build()
         val response = matchStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .createMatch(request)
         response
@@ -124,6 +155,7 @@ class ClientService(
             .setRoomCode(roomCode)
             .build()
         val response = matchStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .joinMatch(request)
         response
@@ -134,6 +166,7 @@ class ClientService(
             .setMatchId(matchID)
             .build()
         val response = matchStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .getMatch(request)
         response
@@ -147,6 +180,7 @@ class ClientService(
             .addAllLosingCards(losingCards)
             .build()
         val response = matchStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .submitMatchResult(request)
         response
@@ -158,6 +192,7 @@ class ClientService(
             .setCommanderScryfallId(commanderScryfallID)
             .build()
         val response = matchStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .selectCommander(request)
         response
@@ -169,9 +204,15 @@ class ClientService(
             .setPageToken(pageToken)
             .build()
         val response = matchStub
+            .withAuth()
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .listMatchHistory(request)
         response
+    }
+
+    //Nulling our token means that we can no longer get authenticated calls
+    fun logout(){
+        sessionToken = null
     }
     override fun close() {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS)
