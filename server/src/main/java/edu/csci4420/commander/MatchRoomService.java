@@ -5,6 +5,8 @@ import edu.csci4420.commander.proto.ColorIdentity;
 import edu.csci4420.commander.proto.CreateMatchRequest;
 import edu.csci4420.commander.proto.GetMatchRequest;
 import edu.csci4420.commander.proto.JoinMatchRequest;
+import edu.csci4420.commander.proto.ListMatchHistoryReply;
+import edu.csci4420.commander.proto.ListMatchHistoryRequest;
 import edu.csci4420.commander.proto.LosingCard;
 import edu.csci4420.commander.proto.Match;
 import edu.csci4420.commander.proto.MatchParticipant;
@@ -16,11 +18,13 @@ import edu.csci4420.commander.proto.SubmitMatchResultRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -36,10 +40,39 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
             Pattern.compile("[" + ROOM_CODE_CHARACTERS + "]{" + ROOM_CODE_LENGTH + "}");
     private static final int MAX_CREATE_ATTEMPTS = 5;
     private static final int DUPLICATE_ENTRY = 1062;
+    private static final int DEFAULT_HISTORY_PAGE_SIZE = 20;
+    private static final int MAX_HISTORY_PAGE_SIZE = 100;
+    private static final int MAX_HISTORY_TOKEN_LENGTH = 1400;
     private static final String SELECT_ROOM = """
             SELECT match_id, room_code, created_by_player_id, playgroup_id,
                    UNIX_TIMESTAMP(created_at) AS created_at_seconds
             FROM match_rooms
+            """;
+    private static final String SELECT_HISTORY = """
+            WITH history_page AS (
+                SELECT game.uuid AS match_id, UNIX_TIMESTAMP(game.timestamp) AS recorded_at,
+                       room.created_by_player_id,
+                       COALESCE(UNIX_TIMESTAMP(room.created_at), UNIX_TIMESTAMP(game.timestamp)) AS created_at_seconds,
+                       COALESCE(room.playgroup_id, caller.playgroup_id) AS playgroup_id
+                FROM game_members caller
+                JOIN games game ON game.uuid = caller.game_id
+                LEFT JOIN match_rooms room ON room.match_id = game.uuid
+                WHERE caller.player_id = ?
+                    AND EXISTS (
+                        SELECT 1 FROM game_members winner
+                        WHERE winner.game_id = game.uuid AND winner.won_game = b'1'
+                    )
+                    %s
+                ORDER BY recorded_at DESC, game.uuid DESC
+                LIMIT ?
+            )
+            SELECT page.*, player.uuid AS player_id, player.username, card.uuid AS commander_uuid,
+                   card.card_name, card.color_identity, member.won_game, member.standout_card_id
+            FROM history_page page
+            JOIN game_members member ON member.game_id = page.match_id
+            JOIN players player ON player.uuid = member.player_id
+            LEFT JOIN commander_card_data card ON card.uuid = member.commander_id
+            ORDER BY page.recorded_at DESC, page.match_id DESC, player.uuid
             """;
 
     private final SecureRandom random = new SecureRandom();
@@ -164,6 +197,68 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
                 return readMatch(connection, room);
             });
         });
+    }
+
+    @Override
+    public void listMatchHistory(ListMatchHistoryRequest request, StreamObserver<ListMatchHistoryReply> response) {
+        reply(response, "Reading match history", playerId -> {
+            long requestedSize = Integer.toUnsignedLong(request.getPageSize());
+            int pageSize = requestedSize == 0 ? DEFAULT_HISTORY_PAGE_SIZE
+                    : (int) Math.min(requestedSize, MAX_HISTORY_PAGE_SIZE);
+            return readHistory(playerId, pageSize, HistoryCursor.decode(request.getPageToken()));
+        });
+    }
+
+    private ListMatchHistoryReply readHistory(String playerId, int pageSize, HistoryCursor cursor) throws SQLException {
+        // The match ID breaks ties when multiple matches finish in the same second.
+        String beforeCursor = cursor == null ? "" : "AND (UNIX_TIMESTAMP(game.timestamp), game.uuid) < (?, ?)";
+        try (Connection connection = database.open();
+             PreparedStatement select = connection.prepareStatement(SELECT_HISTORY.formatted(beforeCursor))) {
+            int parameter = 1;
+            select.setString(parameter++, playerId);
+            if (cursor != null) {
+                select.setLong(parameter++, cursor.recordedAtSeconds());
+                select.setString(parameter++, cursor.matchId());
+            }
+            select.setInt(parameter, pageSize + 1);
+            try (ResultSet rows = select.executeQuery()) {
+                return readHistoryPage(rows, pageSize);
+            }
+        }
+    }
+
+    private static ListMatchHistoryReply readHistoryPage(ResultSet rows, int pageSize) throws SQLException {
+        ListMatchHistoryReply.Builder reply = ListMatchHistoryReply.newBuilder();
+        boolean hasRow = rows.next();
+        while (hasRow && reply.getMatchesCount() < pageSize) {
+            Match.Builder match = Match.newBuilder().setMatchId(rows.getString("match_id"))
+                    .setCreatedAtUnixSeconds(rows.getLong("created_at_seconds"));
+            String creator = rows.getString("created_by_player_id");
+            if (creator != null) {
+                match.setCreatedByPlayerId(creator);
+            }
+            String playgroup = rows.getString("playgroup_id");
+            if (playgroup != null) {
+                match.setPlaygroupId(playgroup);
+            }
+            MatchResult.Builder result = MatchResult.newBuilder().setRecordedAtUnixSeconds(rows.getLong("recorded_at"));
+            do {
+                MatchParticipant participant = readParticipant(rows);
+                if (participant.getPlayer().getPlayerId().equals(creator)) {
+                    match.addParticipants(0, participant);
+                } else {
+                    match.addParticipants(participant);
+                }
+                readResultMember(result, rows);
+                hasRow = rows.next();
+            } while (hasRow && match.getMatchId().equals(rows.getString("match_id")));
+            reply.addMatches(match.setResult(result));
+        }
+        if (hasRow) {
+            Match last = reply.getMatches(pageSize - 1);
+            reply.setNextPageToken(new HistoryCursor(last.getResult().getRecordedAtUnixSeconds(), last.getMatchId()).encode());
+        }
+        return reply.build();
     }
 
     private static Match checkSubmission(
@@ -368,7 +463,8 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
             reply.setPlaygroupId(room.playgroupId());
         }
         try (PreparedStatement select = connection.prepareStatement("""
-                SELECT player.uuid, player.username, card.uuid AS commander_uuid, card.card_name, card.color_identity
+                SELECT player.uuid AS player_id, player.username, card.uuid AS commander_uuid,
+                       card.card_name, card.color_identity
                 FROM match_room_members member
                 JOIN players player ON player.uuid = member.player_id
                 LEFT JOIN commander_card_data card ON card.uuid = member.commander_id
@@ -379,27 +475,31 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
             select.setString(2, room.creatorId());
             try (ResultSet rows = select.executeQuery()) {
                 while (rows.next()) {
-                    MatchParticipant.Builder participant = MatchParticipant.newBuilder()
-                            .setPlayer(PlayerProfile.newBuilder().setPlayerId(rows.getString("uuid"))
-                                    .setUsername(rows.getString("username")));
-                    String commanderId = rows.getString("commander_uuid");
-                    if (commanderId != null) {
-                        Card.Builder card = Card.newBuilder().setScryfallId(commanderId);
-                        String name = rows.getString("card_name");
-                        if (name != null) {
-                            card.setName(name);
-                        }
-                        ColorIdentity colors = CardColors.parse(rows.getString("color_identity"));
-                        if (colors != null) {
-                            card.setColorIdentity(colors);
-                        }
-                        participant.setCommander(card);
-                    }
-                    reply.addParticipants(participant);
+                    reply.addParticipants(readParticipant(rows));
                 }
             }
         }
         return reply.build();
+    }
+
+    private static MatchParticipant readParticipant(ResultSet row) throws SQLException {
+        MatchParticipant.Builder participant = MatchParticipant.newBuilder()
+                .setPlayer(PlayerProfile.newBuilder().setPlayerId(row.getString("player_id"))
+                        .setUsername(row.getString("username")));
+        String commanderId = row.getString("commander_uuid");
+        if (commanderId != null) {
+            Card.Builder card = Card.newBuilder().setScryfallId(commanderId);
+            String name = row.getString("card_name");
+            if (name != null) {
+                card.setName(name);
+            }
+            ColorIdentity colors = CardColors.parse(row.getString("color_identity"));
+            if (colors != null) {
+                card.setColorIdentity(colors);
+            }
+            participant.setCommander(card);
+        }
+        return participant.build();
     }
 
     private static MatchResult findResult(Connection connection, String matchId) throws SQLException {
@@ -418,19 +518,23 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
                 }
                 MatchResult.Builder result = MatchResult.newBuilder().setRecordedAtUnixSeconds(rows.getLong("recorded_at"));
                 do {
-                    String cardId = rows.getString("standout_card_id");
-                    if (rows.getBoolean("won_game")) {
-                        result.setWinnerPlayerId(rows.getString("player_id"));
-                        if (cardId != null) {
-                            result.setMostValuableCardScryfallId(cardId);
-                        }
-                    } else if (cardId != null) {
-                        result.addLosingCards(LosingCard.newBuilder()
-                                .setPlayerId(rows.getString("player_id")).setScryfallId(cardId));
-                    }
+                    readResultMember(result, rows);
                 } while (rows.next());
                 return result.build();
             }
+        }
+    }
+
+    private static void readResultMember(MatchResult.Builder result, ResultSet row) throws SQLException {
+        String cardId = row.getString("standout_card_id");
+        if (row.getBoolean("won_game")) {
+            result.setWinnerPlayerId(row.getString("player_id"));
+            if (cardId != null) {
+                result.setMostValuableCardScryfallId(cardId);
+            }
+        } else if (cardId != null) {
+            result.addLosingCards(LosingCard.newBuilder()
+                    .setPlayerId(row.getString("player_id")).setScryfallId(cardId));
         }
     }
 
@@ -464,15 +568,15 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
         throw Status.INVALID_ARGUMENT.withDescription(label + " must be a UUID.").asRuntimeException();
     }
 
-    private static void reply(StreamObserver<Match> response, String operation, MatchRequest request) {
+    private static <T> void reply(StreamObserver<T> response, String operation, PlayerRequest<T> request) {
         PlayerProfile player = SessionAuthInterceptor.CURRENT_PLAYER.get();
         if (player == null) {
             response.onError(Status.UNAUTHENTICATED.asRuntimeException());
             return;
         }
-        Match match;
+        T result;
         try {
-            match = request.run(player.getPlayerId());
+            result = request.run(player.getPlayerId());
         } catch (StatusRuntimeException e) {
             response.onError(e);
             return;
@@ -480,11 +584,40 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
             response.onError(Database.failure(operation, e).asRuntimeException());
             return;
         }
-        response.onNext(match);
+        response.onNext(result);
         response.onCompleted();
     }
 
     private record Room(String matchId, String roomCode, String creatorId, String playgroupId, long createdAtSeconds) {}
+
+    private record HistoryCursor(long recordedAtSeconds, String matchId) {
+        String encode() {
+            byte[] bytes = (recordedAtSeconds + ":" + matchId).getBytes(StandardCharsets.UTF_8);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        }
+
+        static HistoryCursor decode(String token) {
+            if (token.isEmpty()) {
+                return null;
+            }
+            if (token.length() <= MAX_HISTORY_TOKEN_LENGTH) {
+                try {
+                    String decoded = new String(Base64.getUrlDecoder().decode(token), StandardCharsets.UTF_8);
+                    String[] fields = decoded.split(":", 2);
+                    if (fields.length == 2) {
+                        long timestamp = Long.parseLong(fields[0]);
+                        String id = fields[1];
+                        if (timestamp >= 0 && !id.isBlank() && id.codePointCount(0, id.length()) <= 255) {
+                            return new HistoryCursor(timestamp, id);
+                        }
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // Invalid Base64 and invalid timestamps use the same RPC status.
+                }
+            }
+            throw Status.INVALID_ARGUMENT.withDescription("Invalid match history page token.").asRuntimeException();
+        }
+    }
 
     private record ResultSelection(String winnerId, String mostValuableCard, Map<String, String> losingCards) {
         static ResultSelection fromRequest(SubmitMatchResultRequest request) {
@@ -520,7 +653,7 @@ final class MatchRoomService extends MatchServiceGrpc.MatchServiceImplBase {
     }
 
     @FunctionalInterface
-    private interface MatchRequest {
-        Match run(String playerId) throws SQLException;
+    private interface PlayerRequest<T> {
+        T run(String playerId) throws SQLException;
     }
 }
