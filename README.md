@@ -1,8 +1,4 @@
-Created **Dockerfile** and **Docker Compose** for containerizing server elements, as well as, a database initialization script. 
+Server is currently running on local machines without Docker containerization. This will be changed to achieve scalability in the final submission. 
 
-The **Dockerfile** uses the rootProject.name of the server found in the settings.gradle file of the server. If you are intent on changing that please make sure it is reflected in the **Dockerfile**.
-
-The **Docker Compose** file, names its primary service as commander-ledger and serves to also mount the database initialization script to the volumes. The compose file also shards the database.
-
-The database initialization script creates 7 tables with identifiers and some other data for querying. I know that playgroup's were technically optional, but I believe with this database schema it would be simplistic to implement. Each column has a comment associated with it to explain what it represents or any further operations intended in the server-side implementation. 
+Please open and run commanderDBInit.sql in My SQL Workbench, or start a command line local SQL instance. As long as the script has ran once, and the schema is initialized the commands in the backend server will migrate the other required tables, and ensure the server is listening to port 3306 for the SQL connection. 
 
