@@ -16,10 +16,12 @@ import edu.csci4420.commander.proto.LosingCard
 import edu.csci4420.commander.proto.Match
 import edu.csci4420.commander.proto.PlayerProfile
 import edu.csci4420.commander.proto.WinLossRecord
+import edu.csci4420.commander.proto.cardOrNull
 import edu.csci4420.commander.proto.mostPlayedColorIdentityOrNull
 import io.grpc.StatusException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -65,6 +67,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     var roomCode by mutableStateOf("")
     //Flow of cards from server to utilize Scryfall
     var cardSearchReturn = MutableStateFlow<List<Card>>(emptyList())
+    var cardData by mutableStateOf(Card.getDefaultInstance())
 
 
 
@@ -217,6 +220,32 @@ class ViewModel(application: Application): AndroidViewModel(application) {
                 }
             }
         }
+
+    fun cardSearch(query: String, isCommander : Boolean, limit : Int){
+        viewModelScope.launch {
+            try {
+                cardSearchReturn.value = client.cardSearch(query,isCommander,limit).toList()
+                Log.d("CommanderGRPC", "Card Search Complete")
+            }
+            catch (e: StatusException){
+                Log.e("CommanderGRPC", "Error searching for cards: ${e.status}", e)
+            }
+        }
+    }
+
+    fun cardGet(scryfallID : String)
+    {
+        viewModelScope.launch {
+            try {
+                cardData = client.cardGet(scryfallID).cardOrNull
+                Log.d("CommanderGRPC", "Card found: ${cardData.name}")
+            }
+            catch (e: StatusException)
+            {
+                Log.e("CommanderGRPC", "Error retrieving card data: ${e.status}", e)
+            }
+        }
+    }
 
 
 
