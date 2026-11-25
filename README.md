@@ -1,3 +1,1 @@
-MTG Stat Tracking App
-
-Final Project for Fall 2026 CSCI 4420
+Open the server directory and follow the instructions in the README in that directory
