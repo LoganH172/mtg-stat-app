@@ -61,6 +61,9 @@ class ClientService(
         .context(context.applicationContext)
         .usePlaintext()
         .build()
+
+    /*All stubs are corotuine stubs, so that android does not get blocked on any thread for too long.
+    * Each stub is also named in accordance with the service for which it is a stub. */
     private val testStub = GreeterGrpcKt.GreeterCoroutineStub(channel)
     private val authenticatorStub = AuthServiceGrpcKt.AuthServiceCoroutineStub(channel)
     private val cardStub = CardServiceGrpcKt.CardServiceCoroutineStub(channel)
@@ -121,6 +124,8 @@ class ClientService(
         return response
     }
 
+
+    //GetProfileStatsRequest requires no arguments, so it just sees a newBuilder being built
     suspend fun getProfileStats(): GetProfileStatsReply{
         val request = GetProfileStatsRequest.newBuilder().build()
         val response = statsStub
@@ -130,6 +135,7 @@ class ClientService(
         return response
     }
 
+    //Sets page token and size and builds
     suspend fun leaderboardList(pageLimit : Int, pageToken : String): ListLeaderboardReply{
         val request = ListLeaderboardRequest.newBuilder()
             .setPageSize(pageLimit)
@@ -142,7 +148,7 @@ class ClientService(
         return response
     }
 
-    //Optional field left out
+    //Optional field left out. Creates a new match with passed requestID
     suspend fun matchCreation(requestID : String): Match{
         val request = CreateMatchRequest.newBuilder()
             .setRequestId(requestID)
@@ -153,7 +159,8 @@ class ClientService(
             .createMatch(request)
         return response
     }
-    //Assuming room code is hashed request/match ID
+
+    //Joins a match based on passed room code
     suspend fun matchJoin(roomCode : String): Match{
         val request = JoinMatchRequest.newBuilder()
             .setRoomCode(roomCode)
@@ -165,6 +172,7 @@ class ClientService(
         return response
     }
 
+    //Gets a match based on matchID
     suspend fun matchGet(matchID : String): Match{
         val request = GetMatchRequest.newBuilder()
             .setMatchId(matchID)
@@ -176,7 +184,7 @@ class ClientService(
         return response
     }
 
-    //Optional fields left out
+    //Optional fields left out. SUbmits the finalized result for a match with passed values.
     suspend fun matchSubmit(matchID : String, winningPlayerID : String, losingCards : List<LosingCard>): Match{
         val request = SubmitMatchResultRequest.newBuilder()
             .setMatchId(matchID)
@@ -190,6 +198,7 @@ class ClientService(
         return response
     }
 
+    //Selects commander per match for each participant
     suspend fun matchCommanderSelect(matchID: String, commanderScryfallID : String): Match{
         val request = SelectCommanderRequest.newBuilder()
             .setMatchId(matchID)
@@ -202,6 +211,7 @@ class ClientService(
         return response
     }
 
+    //Shows match history with a set page size and token.
     suspend fun matchHistory(pageLimit : Int, pageToken : String): ListMatchHistoryReply{
         val request = ListMatchHistoryRequest.newBuilder()
             .setPageSize(pageLimit)
@@ -214,6 +224,7 @@ class ClientService(
         return response
     }
 
+    //Searches for cards that match the query, up to the limit provided. Can also search for only commander cards
      fun cardSearch(query: String, isCommander : Boolean, limit : Int): Flow<Card>{
         val request = SearchCardsRequest.newBuilder()
             .setQuery(query)
@@ -226,6 +237,7 @@ class ClientService(
             .searchCards(request)
          return response
      }
+    //GET cards from Scryfall
     suspend fun cardGet(scryfallID : String) : GetCardReply{
         val request = GetCardRequest.newBuilder()
             .setScryfallId(scryfallID)

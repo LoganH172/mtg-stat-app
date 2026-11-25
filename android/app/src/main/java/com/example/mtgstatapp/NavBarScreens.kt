@@ -14,6 +14,5 @@ enum class NavBarScreens(
     COMMANDERS(label = "My Commanders", icon = R.drawable.rounded_crown_24, contentDescription = "My Commander Screen"),
     GAMES(label = "Games", icon = R.drawable.rounded_note_add_24, contentDescription = "Game Screen"),
     PLAYGROUP(label = "Playgroup", icon = R.drawable.rounded_group_24, contentDescription = "Playgroup Screen"),
-
     //PLAYER(label = "Player", icon = R.drawable.rounded_person_24, contentDescription = "Player Screen")
 }
