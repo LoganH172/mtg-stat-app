@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.mtgstatapp.NavigationRoutes
@@ -171,16 +172,28 @@ fun TEST_SCREEN(viewModel: ViewModel, navHostController: NavHostController){
                 Text("Match Data: \n${match.matchId} \n${match.roomCode} \n${match.participantsList} \n${match.result} ")
             }
 
-            //Logs player out by setting token to null also pops back to login
-            Button(onClick = {
-                viewModel.logout()
-                navHostController.popBackStack(route = NavigationRoutes.LOGIN.name, inclusive = false)
-                //Cleanup viewModel so that users don't have persisting data from old users
-                viewModel.roomCode = ""
-                viewModel.serverMatch = Match.getDefaultInstance()
-            }) {
-                Text("Logout")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Button(onClick = {
+                    navHostController.navigate(NavigationRoutes.SCRYFALL.name) })
+                {
+                    Text("To Scryfall Test")
+                }
+                //Logs player out by setting token to null also pops back to login
+                Button(onClick = {
+                    viewModel.logout()
+                    navHostController.popBackStack(route = NavigationRoutes.LOGIN.name, inclusive = false)
+                    //Cleanup viewModel so that users don't have persisting data from old users
+                    viewModel.roomCode = ""
+                    viewModel.serverMatch = Match.getDefaultInstance()
+                }) {
+                    Text("Logout")
+                }
             }
+
         }
     }
 }

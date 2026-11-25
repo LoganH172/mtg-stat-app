@@ -12,11 +12,7 @@ data class cPlayerEntity(
     @PrimaryKey (autoGenerate = false)
     val id : String,
     @param:Nonnull
-    val username: String,
-    @param:Nonnull
-    val session_token: String,
-    @param:Nonnull
-    val token_exp : Long
+    val username: String
     )
 @Entity(tableName = "commander_cards")
 data class cCommanderCardEntity(

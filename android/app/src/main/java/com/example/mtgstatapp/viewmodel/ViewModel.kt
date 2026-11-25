@@ -2,12 +2,16 @@ package com.example.mtgstatapp.viewmodel
 
 import android.app.Application
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mtgstatapp.client.ClientService
+import com.example.mtgstatapp.local.LocalCache
+import com.example.mtgstatapp.local.cPlayerEntity
+import com.example.mtgstatapp.local.toEntity
 import edu.csci4420.commander.proto.Card
 import edu.csci4420.commander.proto.ColorIdentity
 import edu.csci4420.commander.proto.ColorIdentityRecord
@@ -32,6 +36,9 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     * Otherwise this is the layout fot the viewModel, which will handle data from gRPC calls and pass into UI elements
     * for updating. */
     private val client = ClientService(application, "10.0.0.193", 50051)
+
+    //Local cache, currently only has functionality to insert players into local cache.
+    private val cache = LocalCache.getInstance(application).cacheDAO()
 
     //For state of UI on LoginScreen
     var username by mutableStateOf("")
@@ -69,6 +76,9 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     var cardSearchReturn = MutableStateFlow<List<Card>>(emptyList())
     var cardData by mutableStateOf(Card.getDefaultInstance())
 
+    //Card searching parameters
+    var cardSearchQuery by mutableStateOf("")
+    var isCommander by mutableStateOf(false)
 
 
 
@@ -91,6 +101,8 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 currentPlayer = client.loginExistingPlayer(username, password).player
+                //Caches player to demonstrate local cache in the works.
+                cache.cachePlayerWithToken(currentPlayer.toEntity())
                 Log.d("CommanderGRPC", "User logged in")
             }
             catch (e: StatusException){
@@ -102,6 +114,8 @@ class ViewModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 currentPlayer = client.registerNewPlayer(username, password).player
+                //Caches the current player to demonstrate local cache is in the works
+                cache.cachePlayerWithToken(currentPlayer.toEntity())
                 Log.d("CommanderGRPC", "User registered")
             }
             catch (e: StatusException){
@@ -224,8 +238,12 @@ class ViewModel(application: Application): AndroidViewModel(application) {
     fun cardSearch(query: String, isCommander : Boolean, limit : Int){
         viewModelScope.launch {
             try {
-                cardSearchReturn.value = client.cardSearch(query,isCommander,limit).toList()
-                Log.d("CommanderGRPC", "Card Search Complete")
+                //Ensure each search starts fresh
+                cardSearchReturn.value = emptyList()
+                //Collect as Flow and map each card to the StateFlow/List of Cards
+                client.cardSearch(query, isCommander, limit).collect { card ->
+                    cardSearchReturn.value = cardSearchReturn.value + card
+                }
             }
             catch (e: StatusException){
                 Log.e("CommanderGRPC", "Error searching for cards: ${e.status}", e)
@@ -246,6 +264,7 @@ class ViewModel(application: Application): AndroidViewModel(application) {
             }
         }
     }
+
 
 
 
