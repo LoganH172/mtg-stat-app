@@ -32,9 +32,12 @@ public final class GreetingServer {
             }
             Database database = new Database(dbUrl, dbUser, dbPassword);
             SessionAuthInterceptor sessionAuth = new SessionAuthInterceptor(database);
+            ScryfallClient scryfall = new ScryfallClient();
             builder.addService(new AuthService(database));
             builder.addService(ServerInterceptors.intercept(new ProfileStatsService(database), sessionAuth));
-            builder.addService(ServerInterceptors.intercept(new MatchRoomService(database), sessionAuth));
+            builder.addService(ServerInterceptors.intercept(new MatchRoomService(database,
+                    new MatchCardCatalog(database, scryfall)), sessionAuth));
+            builder.addService(ServerInterceptors.intercept(new ScryfallCardService(scryfall), sessionAuth));
         }
         Server server = builder.build().start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -47,7 +50,7 @@ public final class GreetingServer {
             }
         }));
         System.out.println("Commander server listening on port " + server.getPort()
-                + (dbUrl == null ? " (greeting only)" : " (greeting, auth, profile stats, and match rooms)"));
+                + (dbUrl == null ? " (greeting only)" : " (greeting, auth, profile stats, match rooms, and cards)"));
         server.awaitTermination();
     }
 }
